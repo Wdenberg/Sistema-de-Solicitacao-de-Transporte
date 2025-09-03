@@ -185,6 +185,12 @@ export function TransportForm() {
   // Watch form values for preview
   const watchedValues = watch();
 
+  // Get today's date in YYYY-MM-DD format
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
   // Check if current time is after 4 PM
   useEffect(() => {
     const checkCutoffTime = () => {
@@ -457,14 +463,24 @@ export function TransportForm() {
 
                   <div className="grid md:grid-cols-4 gap-4">
                     <div className="animate-field-focus">
-                      <Label htmlFor="dataInicial">Data inicial</Label>
+                      <Label htmlFor="dataInicial">Data inicial *</Label>
                       <Input
                         id="dataInicial"
                         type="date"
-                        {...register("dataInicial")}
+                        min={getTodayDate()}
+                        {...register("dataInicial", { 
+                          required: "Data inicial é obrigatória",
+                          validate: (value) => {
+                            const selectedDate = new Date(value);
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            return selectedDate >= today || "Data não pode ser retroativa";
+                          }
+                        })}
                         disabled={isAfterCutoff}
                         className="transition-smooth"
                       />
+                      {errors.dataInicial && <span className="text-destructive text-sm">{errors.dataInicial.message}</span>}
                     </div>
                     
                     <div className="animate-field-focus">
@@ -479,14 +495,33 @@ export function TransportForm() {
                     </div>
                     
                     <div className="animate-field-focus">
-                      <Label htmlFor="dataRetorno">Data de retorno</Label>
+                      <Label htmlFor="dataRetorno">Data de retorno *</Label>
                       <Input
                         id="dataRetorno"
                         type="date"
-                        {...register("dataRetorno")}
+                        min={getTodayDate()}
+                        {...register("dataRetorno", { 
+                          required: "Data de retorno é obrigatória",
+                          validate: (value) => {
+                            const dataInicial = watchedValues.dataInicial;
+                            if (!dataInicial) return "Selecione primeiro a data inicial";
+                            
+                            const selectedDate = new Date(value);
+                            const initialDate = new Date(dataInicial);
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            
+                            if (selectedDate < today) {
+                              return "Data não pode ser retroativa";
+                            }
+                            
+                            return selectedDate >= initialDate || "Data de retorno deve ser posterior à data inicial";
+                          }
+                        })}
                         disabled={isAfterCutoff}
                         className="transition-smooth"
                       />
+                      {errors.dataRetorno && <span className="text-destructive text-sm">{errors.dataRetorno.message}</span>}
                     </div>
                     
                     <div className="animate-field-focus">
